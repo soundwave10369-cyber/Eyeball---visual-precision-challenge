@@ -1,0 +1,2357 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Eyeball — How good is your eye?</title>
+<meta name="description" content="Five visual precision tests, 500 points. Find centroids, bisect lines, estimate angles, match areas, and stop the moving dot.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;800&family=Newsreader:ital,wght@0,400;0,500;1,400&display=swap">
+<style>
+  /* ==========================================================================
+     DESIGN TOKENS — Editorial Graph-Paper System
+     ========================================================================== */
+  :root {
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    color-scheme: light;
+    --hd: "Bricolage Grotesque", "Arial Narrow", system-ui, sans-serif;
+    --bd: "Newsreader", Georgia, serif;
+    --bg: #e6eef7;
+    --panel: #f4f8fc;
+    --ink: #0b2545;
+    --mut: #4b6a8f;
+    --line: #c3d5e8;
+    --a: #d1175f;
+    --b: #1456c8;
+    --c: #00877a;
+    --a-soft: rgba(209, 23, 95, 0.14);
+    --b-soft: rgba(20, 86, 200, 0.16);
+    --c-soft: rgba(0, 135, 122, 0.14);
+    --shadow: rgba(11, 37, 69, 0.08);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --bg: #0b2545;
+      --panel: #0f2f57;
+      --ink: #e6eef7;
+      --mut: #8fb0d6;
+      --line: #1f4474;
+      --a: #ff5a9c;
+      --b: #6aa6ff;
+      --c: #3ddbc4;
+      --a-soft: rgba(255, 90, 156, 0.18);
+      --b-soft: rgba(106, 166, 255, 0.18);
+      --c-soft: rgba(61, 219, 196, 0.18);
+      --shadow: rgba(0, 0, 0, 0.28);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #0b2545;
+    --panel: #0f2f57;
+    --ink: #e6eef7;
+    --mut: #8fb0d6;
+    --line: #1f4474;
+    --a: #ff5a9c;
+    --b: #6aa6ff;
+    --c: #3ddbc4;
+    --a-soft: rgba(255, 90, 156, 0.18);
+    --b-soft: rgba(106, 166, 255, 0.18);
+    --c-soft: rgba(61, 219, 196, 0.18);
+    --shadow: rgba(0, 0, 0, 0.28);
+  }
+
+  html {
+    scroll-padding-top: env(safe-area-inset-top, 0px);
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  *, *::before, *::after {
+    box-sizing: inherit;
+  }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: 1.05rem/1.55 var(--bd);
+    min-height: 100dvh;
+    overflow-x: hidden;
+  }
+
+  main {
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 24px 18px 48px;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--a);
+    outline-offset: 2px;
+  }
+
+  [hidden] {
+    display: none !important;
+  }
+
+  /* ==========================================================================
+     HEADER & UTILITY TOGGLES
+     ========================================================================== */
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .brand h1 {
+    font: 800 clamp(2.4rem, 10vw, 3.6rem)/0.98 var(--hd);
+    letter-spacing: -0.03em;
+    margin: 0;
+  }
+
+  .sub {
+    color: var(--mut);
+    margin: 0.4rem 0 0;
+    max-width: 40ch;
+    font-size: 1rem;
+  }
+
+  .toggles {
+    display: flex;
+    gap: 6px;
+    flex-shrink: 0;
+    padding-top: 4px;
+  }
+
+  .icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    padding: 7px 10px;
+    min-height: 36px;
+    border: 1.5px solid var(--ink);
+    border-radius: 4px;
+    background: var(--panel);
+    color: var(--ink);
+    font: 600 0.82rem var(--hd);
+    cursor: pointer;
+    transition: background 0.14s ease, transform 0.1s ease;
+    user-select: none;
+  }
+
+  .icon-btn:hover {
+    background: var(--line);
+  }
+
+  .icon-btn:active {
+    transform: translateY(1px);
+  }
+
+  .icon-btn svg {
+    width: 15px;
+    height: 15px;
+    flex-shrink: 0;
+  }
+
+  /* ==========================================================================
+     MODE BAR & BEST SCORE BADGE
+     ========================================================================== */
+  .mode-bar {
+    display: flex;
+    align-items: stretch;
+    justify-content: space-between;
+    gap: 10px;
+    border-bottom: 1.5px solid var(--ink);
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+
+  .mode-tabs {
+    display: flex;
+    gap: 2px;
+  }
+
+  .mode-tabs button {
+    padding: 9px 12px 10px;
+    border: 0;
+    border-bottom: 4px solid transparent;
+    background: none;
+    color: var(--mut);
+    font: 600 0.95rem var(--hd);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: color 0.15s ease, border-color 0.15s ease;
+  }
+
+  .mode-tabs button:hover {
+    color: var(--ink);
+  }
+
+  .mode-tabs button[aria-pressed="true"] {
+    color: var(--ink);
+    border-bottom-color: var(--a);
+  }
+
+  .meta-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-bottom: 6px;
+    margin-left: auto;
+  }
+
+  .pill-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 9px;
+    border: 1.5px solid var(--line);
+    border-radius: 4px;
+    background: var(--panel);
+    font: 600 0.8rem var(--hd);
+    color: var(--mut);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  .pill-badge b {
+    color: var(--ink);
+    font-weight: 800;
+  }
+
+  /* ==========================================================================
+     PROGRESS PILLS (5 ROUNDS)
+     ========================================================================== */
+  .progress {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 6px;
+    margin-bottom: 14px;
+  }
+
+  .r-pill {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 4px;
+    border: 1.5px solid var(--line);
+    border-radius: 4px;
+    background: var(--panel);
+    font: 600 0.72rem/1.15 var(--hd);
+    color: var(--mut);
+    transition: border-color 0.18s ease, background 0.18s ease, transform 0.15s ease;
+    font-variant-numeric: tabular-nums;
+    min-height: 44px;
+  }
+
+  .r-pill .r-num {
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    opacity: 0.85;
+  }
+
+  .r-pill .r-val {
+    font-size: 0.96rem;
+    font-weight: 800;
+    margin-top: 2px;
+    color: var(--ink);
+  }
+
+  .r-pill.active {
+    border-color: var(--ink);
+    box-shadow: inset 0 -3px 0 var(--a);
+    color: var(--ink);
+  }
+
+  .r-pill.done-high {
+    border-color: var(--c);
+    background: var(--c-soft);
+    color: var(--ink);
+  }
+  .r-pill.done-high .r-val { color: var(--c); }
+
+  .r-pill.done-mid {
+    border-color: var(--b);
+    background: var(--b-soft);
+    color: var(--ink);
+  }
+  .r-pill.done-mid .r-val { color: var(--b); }
+
+  .r-pill.done-low {
+    border-color: var(--a);
+    background: var(--a-soft);
+    color: var(--ink);
+  }
+  .r-pill.done-low .r-val { color: var(--a); }
+
+  /* ==========================================================================
+     ROUND HEADER & GRAPH-PAPER CANVAS
+     ========================================================================== */
+  .round-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 4px;
+    flex-wrap: wrap;
+  }
+
+  h2 {
+    font: 800 clamp(1.35rem, 5vw, 1.65rem)/1.15 var(--hd);
+    letter-spacing: -0.02em;
+    margin: 0;
+  }
+
+  .round-tag {
+    font: 600 0.82rem var(--hd);
+    color: var(--mut);
+    letter-spacing: 0.02em;
+  }
+
+  .round-desc {
+    margin: 0.25rem 0 0.85rem;
+    color: var(--ink);
+    max-width: 60ch;
+    min-height: 1.55em;
+  }
+
+  .round-desc strong {
+    font-family: var(--hd);
+    font-weight: 800;
+    color: var(--a);
+  }
+
+  .stage-wrap {
+    position: relative;
+    width: 100%;
+  }
+
+  canvas#stage {
+    display: block;
+    width: 100%;
+    height: 340px;
+    border: 1.5px solid var(--ink);
+    border-radius: 4px;
+    background-color: var(--panel);
+    background-image:
+      linear-gradient(var(--line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--line) 1px, transparent 1px);
+    background-size: 24px 24px;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+    cursor: crosshair;
+  }
+
+  canvas#stage.locked {
+    cursor: default;
+  }
+
+  canvas#stage.stop-mode {
+    cursor: pointer;
+  }
+
+  @media (max-width: 460px) {
+    canvas#stage {
+      height: 300px;
+    }
+  }
+
+  /* ==========================================================================
+     ACTION BAR, METRICS STRIP & TIP
+     ========================================================================== */
+  .action-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 12px 0 12px;
+    min-height: 44px;
+  }
+
+  .status-hint {
+    font: 600 0.92rem/1.3 var(--hd);
+    color: var(--mut);
+  }
+
+  .status-hint kbd {
+    display: inline-block;
+    padding: 1px 6px;
+    border: 1.5px solid var(--line);
+    border-radius: 4px;
+    background: var(--panel);
+    color: var(--ink);
+    font: 600 0.78rem var(--hd);
+    vertical-align: 1px;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    padding: 10px 18px;
+    min-height: 42px;
+    border: 1.5px solid var(--ink);
+    border-radius: 4px;
+    background: var(--panel);
+    color: var(--ink);
+    font: 600 0.95rem var(--hd);
+    cursor: pointer;
+    transition: background 0.14s ease, color 0.14s ease, transform 0.1s ease;
+    white-space: nowrap;
+    user-select: none;
+  }
+
+  .btn:hover {
+    background: var(--line);
+  }
+
+  .btn:active {
+    transform: translateY(1px);
+  }
+
+  .btn.primary {
+    background: var(--ink);
+    color: var(--bg);
+    border-color: var(--ink);
+  }
+
+  .btn.primary:hover {
+    background: var(--a);
+    border-color: var(--a);
+    color: #fff;
+  }
+
+  .btn.accent {
+    background: var(--a);
+    color: #fff;
+    border-color: var(--a);
+  }
+
+  .btn.accent:hover {
+    filter: brightness(1.08);
+  }
+
+  .out {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    border-top: 1.5px solid var(--ink);
+    margin: 8px 0 14px;
+    padding-top: 10px;
+  }
+
+  .out div {
+    font-size: 0.85rem;
+    color: var(--mut);
+    line-height: 1.25;
+  }
+
+  .out strong {
+    display: block;
+    font: 800 clamp(1.15rem, 4.2vw, 1.38rem)/1.2 var(--hd);
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+    margin-top: 3px;
+  }
+
+  .out strong.score-high { color: var(--c); }
+  .out strong.score-mid  { color: var(--b); }
+  .out strong.score-low  { color: var(--a); }
+
+  .tip {
+    border-left: 4px solid var(--a);
+    padding: 2px 0 2px 12px;
+    margin: 0;
+    color: var(--mut);
+    font-size: 0.96rem;
+    min-height: 2.8em;
+  }
+
+  /* ==========================================================================
+     END-OF-GAME SUMMARY CARD
+     ========================================================================== */
+  .summary-card {
+    border: 1.5px solid var(--ink);
+    border-radius: 4px;
+    background: var(--panel);
+    padding: 22px 20px;
+    box-shadow: 4px 4px 0 var(--shadow);
+  }
+
+  .sum-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding-bottom: 16px;
+    border-bottom: 1.5px solid var(--line);
+  }
+
+  .sum-kicker {
+    font: 600 0.82rem var(--hd);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--mut);
+    margin-bottom: 4px;
+  }
+
+  .sum-score {
+    font: 800 clamp(2.5rem, 10vw, 3.4rem)/1 var(--hd);
+    letter-spacing: -0.03em;
+    font-variant-numeric: tabular-nums;
+    color: var(--ink);
+  }
+
+  .sum-score span {
+    font-size: 1.35rem;
+    color: var(--mut);
+    font-weight: 600;
+  }
+
+  .rank-badge {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: flex-end;
+    text-align: right;
+    gap: 4px;
+  }
+
+  .rank-pill {
+    display: inline-block;
+    padding: 5px 12px;
+    border: 1.5px solid var(--ink);
+    border-radius: 4px;
+    background: var(--a);
+    color: #fff;
+    font: 800 0.92rem var(--hd);
+    letter-spacing: -0.01em;
+  }
+
+  .rank-sub {
+    font: 600 0.8rem var(--hd);
+    color: var(--mut);
+  }
+
+  .breakdown {
+    list-style: none;
+    margin: 14px 0 18px;
+    padding: 0;
+    display: grid;
+    gap: 8px;
+  }
+
+  .breakdown li {
+    display: grid;
+    grid-template-columns: 20px 1fr auto;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    background: var(--bg);
+  }
+
+  .sq {
+    width: 14px;
+    height: 14px;
+    border-radius: 3px;
+    display: inline-block;
+  }
+  .sq.high { background: var(--c); }
+  .sq.mid  { background: var(--b); }
+  .sq.warn { background: #d9822b; }
+  .sq.low  { background: var(--a); }
+
+  .bd-info {
+    min-width: 0;
+  }
+
+  .bd-name {
+    font: 600 0.92rem/1.2 var(--hd);
+    color: var(--ink);
+  }
+
+  .bd-err {
+    font-size: 0.85rem;
+    color: var(--mut);
+  }
+
+  .bd-pts {
+    font: 800 1.08rem var(--hd);
+    font-variant-numeric: tabular-nums;
+    color: var(--ink);
+  }
+
+  .sum-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .sum-actions .btn {
+    flex: 1 1 150px;
+  }
+
+  .sum-note {
+    margin: 14px 0 0;
+    font-size: 0.9rem;
+    color: var(--mut);
+  }
+
+  footer {
+    color: var(--mut);
+    font-size: 0.88rem;
+    margin-top: 26px;
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+</style>
+</head>
+<body>
+<main>
+  <!-- Header: Title, Tagline, Sound & Theme Controls -->
+  <header>
+    <div class="brand">
+      <h1>Eyeball</h1>
+      <p class="sub">How good is your eye? Five visual tests, 500 points.</p>
+    </div>
+    <div class="toggles">
+      <button class="icon-btn" id="btnSound" type="button" aria-pressed="true" title="Toggle sound effects">
+        <svg id="icoSound" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+          <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+          <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+        </svg>
+        <span id="lblSound">Sound</span>
+      </button>
+      <button class="icon-btn" id="btnTheme" type="button" title="Switch light/dark theme">
+        <svg id="icoTheme" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="5"></circle>
+          <line x1="12" y1="1" x2="12" y2="3"></line>
+          <line x1="12" y1="21" x2="12" y2="23"></line>
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+          <line x1="1" y1="12" x2="3" y2="12"></line>
+          <line x1="21" y1="12" x2="23" y2="12"></line>
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+        </svg>
+        <span id="lblTheme">Theme</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Mode Selector Bar -->
+  <nav class="mode-bar" aria-label="Game modes">
+    <div class="mode-tabs">
+      <button id="tabDaily" type="button" aria-pressed="true">Daily Challenge</button>
+      <button id="tabPractice" type="button" aria-pressed="false">Endless Practice</button>
+    </div>
+    <div class="meta-right">
+      <span class="pill-badge" id="puzzleBadge">Daily <b>#—</b></span>
+      <span class="pill-badge" id="bestBadge">Best <b>—</b></span>
+    </div>
+  </nav>
+
+  <!-- 5-Round Progress Indicator -->
+  <div class="progress" id="progressBar" aria-label="Round progress"></div>
+
+  <!-- Active Game Section -->
+  <section id="gameView" aria-live="polite">
+    <div class="round-head">
+      <h2 id="roundTitle">Find the center</h2>
+      <span class="round-tag" id="roundTag">Round 1 of 5</span>
+    </div>
+    <p class="round-desc" id="roundDesc"></p>
+
+    <div class="stage-wrap">
+      <canvas id="stage" aria-label="Visual precision canvas"></canvas>
+    </div>
+
+    <div class="action-bar">
+      <div class="status-hint" id="statusHint">Click or drag to place your mark.</div>
+      <button class="btn primary" id="btnNext" type="button" hidden>Next Round →</button>
+    </div>
+
+    <div class="out">
+      <div>Round score<strong id="mScore">—</strong></div>
+      <div>Accuracy<strong id="mError">—</strong></div>
+      <div>Total score<strong id="mTotal">0 / 500</strong></div>
+    </div>
+
+    <p class="tip" id="roundTip"></p>
+  </section>
+
+  <!-- End-of-Game Summary Section -->
+  <section id="summaryView" hidden aria-live="polite">
+    <div class="summary-card">
+      <div class="sum-top">
+        <div>
+          <div class="sum-kicker" id="sumKicker">Daily Challenge #—</div>
+          <div class="sum-score"><span id="sumScoreNum">0</span> <span>/ 500</span></div>
+        </div>
+        <div class="rank-badge">
+          <span class="rank-pill" id="sumRank">—</span>
+          <span class="rank-sub" id="sumBestNote"></span>
+        </div>
+      </div>
+
+      <ul class="breakdown" id="sumList"></ul>
+
+      <div class="sum-actions">
+        <button class="btn accent" id="btnCopy" type="button">Copy Score</button>
+        <button class="btn primary" id="btnPracticeRun" type="button">Play Practice Run</button>
+        <button class="btn" id="btnBackDaily" type="button" hidden>Daily Challenge</button>
+      </div>
+      <p class="sum-note" id="sumNote"></p>
+    </div>
+  </section>
+
+  <footer>
+    <span>No rulers. Just intuition.</span>
+    <span id="footerDate"></span>
+  </footer>
+</main>
+
+<script>
+(() => {
+  'use strict';
+
+  /* ==========================================================================
+     DOM HELPERS & STORAGE KEYS
+     ========================================================================== */
+  const $ = (sel, root = document) => root.querySelector(sel);
+  const STORAGE = {
+    theme: 'eyeball_theme_v1',
+    sound: 'eyeball_sound_v1',
+    best:  'eyeball_best_v1',
+    daily: 'eyeball_daily_v1'
+  };
+
+  function safeStorageGet(key) {
+    try { return localStorage.getItem(key); } catch { return null; }
+  }
+  function safeStorageSet(key, val) {
+    try { localStorage.setItem(key, val); } catch { /* ignore private-mode quota */ }
+  }
+
+  /* ==========================================================================
+     DATE & SEEDED PRNG (Mulberry32 + FNV-1a)
+     ========================================================================== */
+  function getTodayKey() {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
+
+  function getPuzzleNumber(dateKey) {
+    // Puzzle #1 = 2026-01-01
+    const [y, m, d] = dateKey.split('-').map(Number);
+    const epoch = Date.UTC(2026, 0, 1);
+    const cur = Date.UTC(y, m - 1, d);
+    return Math.max(1, Math.floor((cur - epoch) / 86400000) + 1);
+  }
+
+  function hashString(str) {
+    let h = 2166136261 >>> 0;
+    for (let i = 0; i < str.length; i++) {
+      h ^= str.charCodeAt(i);
+      h = Math.imul(h, 16777619);
+    }
+    return h >>> 0;
+  }
+
+  function mulberry32(seed) {
+    let a = seed >>> 0;
+    return function () {
+      a = (a + 0x6D2B79F5) >>> 0;
+      let t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  function randRange(rng, min, max) {
+    return min + rng() * (max - min);
+  }
+
+  function randInt(rng, min, max) {
+    return Math.floor(randRange(rng, min, max + 1));
+  }
+
+  /* ==========================================================================
+     THEME MANAGEMENT & CACHED PALETTE
+     ========================================================================== */
+  let palette = {};
+
+  function refreshPalette() {
+    const st = getComputedStyle(document.documentElement);
+    const get = n => st.getPropertyValue(n).trim();
+    palette = {
+      bg: get('--bg'),
+      panel: get('--panel'),
+      ink: get('--ink'),
+      mut: get('--mut'),
+      line: get('--line'),
+      a: get('--a'),
+      b: get('--b'),
+      c: get('--c'),
+      aSoft: get('--a-soft'),
+      bSoft: get('--b-soft'),
+      cSoft: get('--c-soft')
+    };
+  }
+
+  function isDarkActive() {
+    const attr = document.documentElement.getAttribute('data-theme');
+    if (attr === 'dark') return true;
+    if (attr === 'light') return false;
+    return matchMedia('(prefers-color-scheme: dark)').matches;
+  }
+
+  function updateThemeButton() {
+    const dark = isDarkActive();
+    $('#lblTheme').textContent = dark ? 'Light' : 'Dark';
+    $('#icoTheme').innerHTML = dark
+      ? '<circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>'
+      : '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>';
+  }
+
+  function initTheme() {
+    const saved = safeStorageGet(STORAGE.theme);
+    if (saved === 'dark' || saved === 'light') {
+      document.documentElement.setAttribute('data-theme', saved);
+    }
+    refreshPalette();
+    updateThemeButton();
+    matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+      refreshPalette();
+      updateThemeButton();
+    });
+  }
+
+  $('#btnTheme').addEventListener('click', () => {
+    const next = isDarkActive() ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    safeStorageSet(STORAGE.theme, next);
+    refreshPalette();
+    updateThemeButton();
+  });
+
+  /* ==========================================================================
+     WEB AUDIO API — TACTILE SYNTHESIZED SFX
+     ========================================================================== */
+  const sfx = (() => {
+    let ctx = null;
+    let enabled = safeStorageGet(STORAGE.sound) !== 'off';
+
+    function updateBtn() {
+      const btn = $('#btnSound');
+      btn.setAttribute('aria-pressed', String(enabled));
+      $('#lblSound').textContent = enabled ? 'Sound' : 'Muted';
+      $('#icoSound').innerHTML = enabled
+        ? '<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>'
+        : '<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line>';
+    }
+
+    function ensureCtx() {
+      if (!enabled) return null;
+      try {
+        if (!ctx) {
+          const AC = window.AudioContext || window.webkitAudioContext;
+          if (!AC) return null;
+          ctx = new AC();
+        }
+        if (ctx.state === 'suspended') ctx.resume();
+        return ctx;
+      } catch {
+        return null;
+      }
+    }
+
+    function tone(freq, startOffset, dur, type = 'sine', peak = 0.08, endFreq = null) {
+      const c = ensureCtx();
+      if (!c) return;
+      const t0 = c.currentTime + startOffset;
+      const osc = c.createOscillator();
+      const g = c.createGain();
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, t0);
+      if (endFreq) osc.frequency.exponentialRampToValueAtTime(endFreq, t0 + dur);
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.linearRampToValueAtTime(peak, t0 + 0.012);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+      osc.connect(g);
+      g.connect(c.destination);
+      osc.start(t0);
+      osc.stop(t0 + dur + 0.02);
+    }
+
+    function click() {
+      // Crisp mechanical detent
+      tone(680, 0, 0.032, 'triangle', 0.07, 260);
+    }
+
+    function score(pts) {
+      if (pts >= 90) {
+        // Warm ascending C major triad
+        tone(523.25, 0.05, 0.22, 'sine', 0.075);
+        tone(659.25, 0.12, 0.25, 'sine', 0.075);
+        tone(783.99, 0.19, 0.34, 'triangle', 0.07);
+      } else if (pts >= 70) {
+        // Neutral pleasant two-note chime
+        tone(587.33, 0.05, 0.2, 'sine', 0.065);
+        tone(880.00, 0.13, 0.28, 'sine', 0.055);
+      } else {
+        // Soft low woodblock tap
+        tone(250, 0.05, 0.13, 'sine', 0.08, 165);
+      }
+    }
+
+    function fanfare() {
+      const notes = [523.25, 659.25, 783.99, 1046.5];
+      notes.forEach((n, i) => {
+        tone(n, 0.04 + i * 0.085, 0.36, i === 3 ? 'triangle' : 'sine', 0.075);
+      });
+    }
+
+    $('#btnSound').addEventListener('click', () => {
+      enabled = !enabled;
+      safeStorageSet(STORAGE.sound, enabled ? 'on' : 'off');
+      updateBtn();
+      if (enabled) click();
+    });
+
+    updateBtn();
+    return { click, score, fanfare, unlock: ensureCtx };
+  })();
+
+  /* ==========================================================================
+     MATH & SCORING CURVES
+     ========================================================================== */
+  const TAU = Math.PI * 2;
+  const RAD = Math.PI / 180;
+  const DEG = 180 / Math.PI;
+
+  function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+  function hypot(dx, dy) { return Math.hypot(dx, dy); }
+
+  // Exact 2D Polygon Area Centroid via Shoelace Formula (NOT vertex average)
+  function polygonAreaCentroid(pts) {
+    let a2 = 0, cx = 0, cy = 0;
+    const n = pts.length;
+    for (let i = 0; i < n; i++) {
+      const p0 = pts[i];
+      const p1 = pts[(i + 1) % n];
+      const cross = p0.x * p1.y - p1.x * p0.y;
+      a2 += cross;
+      cx += (p0.x + p1.x) * cross;
+      cy += (p0.y + p1.y) * cross;
+    }
+    const area = a2 * 0.5;
+    if (Math.abs(area) < 1e-6) return { x: 0.5, y: 0.5, area: 0 };
+    return { x: cx / (3 * a2), y: cy / (3 * a2), area: Math.abs(area) };
+  }
+
+  // Point-in-polygon check (ray casting) to ensure generated centroid lies cleanly inside
+  function pointInPolygon(pt, pts) {
+    let inside = false;
+    for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+      const xi = pts[i].x, yi = pts[i].y;
+      const xj = pts[j].x, yj = pts[j].y;
+      const intersect = ((yi > pt.y) !== (yj > pt.y)) &&
+        (pt.x < (xj - xi) * (pt.y - yi) / (yj - yi + 1e-12) + xi);
+      if (intersect) inside = !inside;
+    }
+    return inside;
+  }
+
+  // Smooth distance score curve: 100 for <= 1.5px, ~90 at 8px, ~70 at 22px, 0 around 85px+
+  function scoreFromPx(pxErr) {
+    if (pxErr <= 1.5) return 100;
+    const t = pxErr - 1.5;
+    return Math.round(clamp(100 * (1 - Math.pow(t / 84, 0.88)), 0, 100));
+  }
+
+  // Smooth angle score curve: 100 for <= 0.5°, ~90 at 3°, ~70 at 9°, 0 around 35°+
+  function scoreFromDeg(degErr) {
+    if (degErr <= 0.5) return 100;
+    const t = degErr - 0.5;
+    return Math.round(clamp(100 * (1 - Math.pow(t / 34.5, 0.84)), 0, 100));
+  }
+
+  // Smooth relative area error curve: 100 for <= 1.5%, ~90 around 6.5%, ~70 around 18%, 0 around 66%+
+  function scoreFromAreaRel(relErr) {
+    if (relErr <= 0.015) return 100;
+    const t = relErr - 0.015;
+    return Math.round(clamp(100 * (1 - Math.pow(t / 0.65, 0.85)), 0, 100));
+  }
+
+  function scoreTier(pts) {
+    if (pts >= 90) return 'high';
+    if (pts >= 75) return 'mid';
+    return 'low';
+  }
+
+  function scoreSquareEmoji(pts) {
+    if (pts >= 90) return '🟩';
+    if (pts >= 75) return '🟦';
+    if (pts >= 55) return '🟨';
+    return '🟥';
+  }
+
+  function scoreSquareClass(pts) {
+    if (pts >= 90) return 'high';
+    if (pts >= 75) return 'mid';
+    if (pts >= 55) return 'warn';
+    return 'low';
+  }
+
+  function getRank(total) {
+    if (total >= 475) return { title: 'Human Caliper', note: 'Machinists are asking for your phone number.' };
+    if (total >= 440) return { title: 'Master Draftsman', note: 'Steady hand, uncanny spatial intuition.' };
+    if (total >= 390) return { title: 'Razor Eye', note: 'Sharper than almost everyone without a ruler.' };
+    if (total >= 320) return { title: 'Pretty Sharp', note: 'Solid instincts—just a couple of pixels away.' };
+    if (total >= 240) return { title: 'Close Enough', note: 'Good enough for hanging picture frames.' };
+    return { title: 'Trust the Ruler', note: 'Probably measure twice before cutting.' };
+  }
+
+  function wittyFeedback(pts) {
+    if (pts === 100) return 'Dead-on bullseye. Are you secretly holding a ruler up to the screen?';
+    if (pts >= 95)  return 'Surgical precision. Barely a hairline off the mathematical mark.';
+    if (pts >= 88)  return 'Very sharp eye—right in the sweet spot.';
+    if (pts >= 75)  return 'Respectable instinct. A slight bias, easily dialed in next run.';
+    if (pts >= 55)  return 'In the neighborhood, though visual illusions tugged your eye a bit.';
+    return 'Oof—the brain plays tricks on flat geometry. Shake it off for the next one.';
+  }
+
+  /* ==========================================================================
+     ROUND GENERATORS (Normalized Virtual Space: 600 × 340)
+     Using a virtual 600×340 coordinate box mapped cleanly onto any canvas size
+     guarantees fair, resolution-independent scoring across mobile and desktop.
+     ========================================================================== */
+  const VW = 600;
+  const VH = 340;
+
+  function generateRun(rng) {
+    return [
+      genRound1Centroid(rng),
+      genRound2Bisect(rng),
+      genRound3Angle(rng),
+      genRound4Area(rng),
+      genRound5StopDot(rng)
+    ];
+  }
+
+  // Round 1: Irregular Polygon Centroid (5 to 7 vertices)
+  function genRound1Centroid(rng) {
+    const n = randInt(rng, 5, 7);
+    let bestPts = null;
+    let bestC = null;
+
+    for (let attempt = 0; attempt < 40; attempt++) {
+      const baseRot = randRange(rng, 0, TAU);
+      const pts = [];
+      for (let i = 0; i < n; i++) {
+        const sector = (TAU / n);
+        const angle = baseRot + i * sector + randRange(rng, -sector * 0.24, sector * 0.24);
+        const r = randRange(rng, 56, 126);
+        pts.push({ x: Math.cos(angle) * r, y: Math.sin(angle) * r });
+      }
+      // Compute bounding box & shift into canvas with slight off-center bias
+      let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+      pts.forEach(p => {
+        if (p.x < minX) minX = p.x;
+        if (p.x > maxX) maxX = p.x;
+        if (p.y < minY) minY = p.y;
+        if (p.y > maxY) maxY = p.y;
+      });
+      const bw = maxX - minX, bh = maxY - minY;
+      const scale = Math.min(340 / bw, 230 / bh, 1.15);
+      const offX = randRange(rng, -48, 48);
+      const offY = randRange(rng, -20, 20);
+      const shifted = pts.map(p => ({
+        x: VW / 2 + offX + (p.x - (minX + maxX) / 2) * scale,
+        y: VH / 2 + offY + (p.y - (minY + maxY) / 2) * scale
+      }));
+
+      // Verify clean padding inside canvas
+      const padded = shifted.every(p => p.x >= 44 && p.x <= VW - 44 && p.y >= 34 && p.y <= VH - 34);
+      if (!padded) continue;
+
+      const c = polygonAreaCentroid(shifted);
+      if (c.area > 9000 && pointInPolygon(c, shifted)) {
+        bestPts = shifted;
+        bestC = c;
+        break;
+      }
+    }
+
+    // Fallback safe pentagon if RNG ever struggled
+    if (!bestPts) {
+      bestPts = [
+        { x: 210, y: 95 }, { x: 395, y: 78 }, { x: 445, y: 205 },
+        { x: 315, y: 278 }, { x: 175, y: 218 }
+      ];
+      bestC = polygonAreaCentroid(bestPts);
+    }
+
+    return {
+      id: 'centroid',
+      shortName: 'Center',
+      title: 'Find the center',
+      desc: 'Place your mark on the exact center of mass of this polygon.',
+      tip: 'Notice where the bulk of the area sits—long skinny corners pull the center of mass less than wide lobes.',
+      pts: bestPts,
+      centroid: { x: bestC.x, y: bestC.y }
+    };
+  }
+
+  // Round 2: Bisect a Tilted Line Segment
+  function genRound2Bisect(rng) {
+    const len = randRange(rng, VW * 0.48, VW * 0.72);
+    const tiltDeg = randRange(rng, -34, 34);
+    const tilt = tiltDeg * RAD;
+    // Keep endpoints comfortably inside margins
+    const dx = Math.cos(tilt) * len * 0.5;
+    const dy = Math.sin(tilt) * len * 0.5;
+    const maxCx = Math.max(0, (VW * 0.5 - 52) - Math.abs(dx));
+    const maxCy = Math.max(0, (VH * 0.5 - 48) - Math.abs(dy));
+    const mx = VW * 0.5 + randRange(rng, -Math.min(48, maxCx), Math.min(48, maxCx));
+    const my = VH * 0.5 + randRange(rng, -Math.min(34, maxCy), Math.min(34, maxCy));
+
+    const A = { x: mx - dx, y: my - dy };
+    const B = { x: mx + dx, y: my + dy };
+
+    return {
+      id: 'bisect',
+      shortName: 'Split',
+      title: 'Split the line',
+      desc: 'Cut this tilted segment into two perfectly equal halves.',
+      tip: 'Tilted lines fool the eye into shifting the midpoint slightly toward the higher end. Look at both halves at once.',
+      A, B,
+      mid: { x: mx, y: my },
+      len,
+      angle: tilt
+    };
+  }
+
+  // Round 3: Angle Estimation
+  function genRound3Angle(rng) {
+    // Choose a non-trivial integer angle between 25° and 155° (avoiding 45, 90, 135 ±2°)
+    let targetDeg = 68;
+    for (let i = 0; i < 40; i++) {
+      const cand = randInt(rng, 25, 155);
+      const nearTrivial = [45, 90, 135].some(t => Math.abs(cand - t) <= 3);
+      if (!nearTrivial) { targetDeg = cand; break; }
+    }
+    const baseDeg = randRange(rng, -18, 18); // Slight tilt so screen edges can't be used as cheat guides
+    const rayLen = 185;
+    // Position vertex so both base ray and target ray stay comfortably inside canvas
+    const vx = targetDeg > 105 ? randRange(rng, 290, 345) : randRange(rng, 195, 255);
+    const vy = randRange(rng, 240, 268);
+
+    return {
+      id: 'angle',
+      shortName: 'Angle',
+      title: 'Nail the angle',
+      desc: `Sweep the pink ray to form an exact <strong>${targetDeg}°</strong> angle from the blue line.`,
+      tip: 'The blue base line is subtly tilted on purpose—judge the opening between the two rays, not the grid lines.',
+      vertex: { x: vx, y: vy },
+      baseDeg,
+      targetDeg,
+      rayLen
+    };
+  }
+
+  // Round 4: Visual Area Equivalence
+  function genRound4Area(rng) {
+    const isRotatedSquare = rng() < 0.42;
+    let rw, rh, rotDeg;
+    if (isRotatedSquare) {
+      const side = randRange(rng, 78, 128);
+      rw = side;
+      rh = side;
+      rotDeg = randRange(rng, 18, 72);
+    } else {
+      // Varied rectangle with area nicely matched to a circle radius of ~42..72
+      const targetR = randRange(rng, 44, 72);
+      const area = Math.PI * targetR * targetR;
+      const aspect = rng() < 0.5 ? randRange(rng, 0.52, 0.78) : randRange(rng, 1.28, 1.92);
+      rw = Math.sqrt(area * aspect);
+      rh = area / rw;
+      rotDeg = randRange(rng, -12, 12);
+    }
+    const area = rw * rh;
+    const targetR = Math.sqrt(area / Math.PI);
+
+    return {
+      id: 'area',
+      shortName: 'Area',
+      title: 'Match the area',
+      desc: 'Size the pink circle on the right so its area equals the blue shape on the left.',
+      tip: 'Area grows with the square of radius—a circle only 10% wider than target actually holds 21% more area.',
+      refCenter: { x: 162, y: VH / 2 },
+      rw, rh, rotDeg,
+      area,
+      circleCenter: { x: 432, y: VH / 2 },
+      targetR,
+      maxR: 136
+    };
+  }
+
+  // Round 5: Stop the Moving Dot at the Midpoint
+  function genRound5StopDot(rng) {
+    const len = randRange(rng, VW * 0.62, VW * 0.78);
+    const tiltDeg = randRange(rng, -14, 14);
+    const tilt = tiltDeg * RAD;
+    const dx = Math.cos(tilt) * len * 0.5;
+    const dy = Math.sin(tilt) * len * 0.5;
+    const maxCx = Math.max(0, (VW * 0.5 - 48) - Math.abs(dx));
+    const maxCy = Math.max(0, (VH * 0.5 - 52) - Math.abs(dy));
+    const mx = VW * 0.5 + randRange(rng, -Math.min(36, maxCx), Math.min(36, maxCx));
+    const my = VH * 0.5 + randRange(rng, -Math.min(26, maxCy), Math.min(26, maxCy));
+
+    const speed = randRange(rng, 0.92, 1.22); // full A→B traversals per second
+    const startPhase = randRange(rng, 0.1, 0.9); // random initial position
+
+    return {
+      id: 'stop',
+      shortName: 'Stop',
+      title: 'Stop the dot',
+      desc: 'Tap the canvas or press Space to freeze the gliding dot at the exact midpoint.',
+      tip: 'Track the rhythm across one full bounce before tapping—your eyes anticipate linear motion better than reacting late.',
+      A: { x: mx - dx, y: my - dy },
+      B: { x: mx + dx, y: my + dy },
+      mid: { x: mx, y: my },
+      len,
+      angle: tilt,
+      speed,
+      startPhase
+    };
+  }
+
+  /* ==========================================================================
+     GAME STATE
+     ========================================================================== */
+  const todayKey = getTodayKey();
+  const puzzleNum = getPuzzleNumber(todayKey);
+
+  const state = {
+    mode: 'daily',         // 'daily' | 'practice'
+    rounds: [],            // 5 generated round configs
+    roundIdx: 0,           // 0..4
+    phase: 'aim',          // 'aim' | 'reveal' | 'summary'
+    results: [],           // array of { score, errText, shortErr, guess, ... }
+    pointer: {
+      active: false,
+      inside: false,
+      vx: VW / 2,
+      vy: VH / 2,
+      isTouch: false,
+      dragged: false,
+      downVx: 0,
+      downVy: 0
+    },
+    // Per-round live interaction state
+    aim: {
+      point: null,         // Round 1 & 2 virtual point / t
+      angleDeg: null,      // Round 3 live angle
+      radius: null,        // Round 4 live radius
+      dotU: 0.25,          // Round 5 parameter in [0..1]
+      dotClock: 0          // Round 5 elapsed seconds
+    },
+    revealT: 0,            // 0..1 reveal animation progress
+    summaryAnimId: 0
+  };
+
+  /* ==========================================================================
+     CANVAS SETUP & VIRTUAL COORDINATE MAPPING
+     ========================================================================== */
+  const canvas = $('#stage');
+  const ctx = canvas.getContext('2d');
+  const view = { w: 600, h: 340, dpr: 1, sx: 1, sy: 1, scale: 1, ox: 0, oy: 0 };
+
+  function resizeCanvas() {
+    const rect = canvas.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
+    canvas.width = Math.round(rect.width * dpr);
+    canvas.height = Math.round(rect.height * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    view.w = rect.width;
+    view.h = rect.height;
+    view.dpr = dpr;
+    // Uniform scale preserving aspect ratio centered inside the canvas
+    view.scale = Math.min(view.w / VW, view.h / VH);
+    view.ox = (view.w - VW * view.scale) * 0.5;
+    view.oy = (view.h - VH * view.scale) * 0.5;
+  }
+
+  if (typeof ResizeObserver !== 'undefined') {
+    new ResizeObserver(resizeCanvas).observe(canvas);
+  }
+  window.addEventListener('resize', resizeCanvas);
+
+  // Convert between Virtual (600x340) and Canvas CSS px
+  function toCanvas(vx, vy) {
+    return { x: view.ox + vx * view.scale, y: view.oy + vy * view.scale };
+  }
+  function toVirtual(cx, cy) {
+    return { x: (cx - view.ox) / view.scale, y: (cy - view.oy) / view.scale };
+  }
+
+  function pointerToVirtual(e, applyTouchOffset = false) {
+    const rect = canvas.getBoundingClientRect();
+    const cx = e.clientX - rect.left;
+    const cy = e.clientY - rect.top;
+    // On touch devices, offset upward slightly so finger doesn't hide exact target dot
+    const offsetY = (applyTouchOffset && e.pointerType === 'touch') ? -34 : 0;
+    const v = toVirtual(cx, cy + offsetY);
+    return {
+      vx: clamp(v.x, 8, VW - 8),
+      vy: clamp(v.y, 8, VH - 8),
+      rawVx: v.x,
+      rawVy: v.y
+    };
+  }
+
+  /* ==========================================================================
+     PERSISTENCE: DAILY RESULT & ENDLESS BEST
+     ========================================================================== */
+  function loadBestScore() {
+    const raw = safeStorageGet(STORAGE.best);
+    const n = raw ? parseInt(raw, 10) : NaN;
+    return Number.isFinite(n) ? n : null;
+  }
+
+  function saveBestScore(total) {
+    const prev = loadBestScore();
+    if (prev === null || total > prev) {
+      safeStorageSet(STORAGE.best, String(total));
+      updateBestBadge();
+      return true;
+    }
+    return false;
+  }
+
+  function updateBestBadge() {
+    const best = loadBestScore();
+    $('#bestBadge').innerHTML = best !== null ? `Best <b>${best}</b>` : `Best <b>—</b>`;
+  }
+
+  function loadDailyRecord() {
+    try {
+      const raw = safeStorageGet(STORAGE.daily);
+      if (!raw) return null;
+      const obj = JSON.parse(raw);
+      if (obj && obj.date === todayKey && Array.isArray(obj.results) && obj.results.length === 5) {
+        return obj;
+      }
+    } catch { /* ignore corrupted storage */ }
+    return null;
+  }
+
+  function saveDailyRecord(results) {
+    const total = results.reduce((s, r) => s + r.score, 0);
+    const payload = {
+      date: todayKey,
+      puzzleNum,
+      total,
+      results: results.map(r => ({
+        shortName: r.shortName,
+        title: r.title,
+        score: r.score,
+        errText: r.errText,
+        shortErr: r.shortErr
+      }))
+    };
+    safeStorageSet(STORAGE.daily, JSON.stringify(payload));
+  }
+
+  /* ==========================================================================
+     UI RENDERING (PROGRESS PILLS, METRICS, SUMMARY)
+     ========================================================================== */
+  function renderProgressBar() {
+    const bar = $('#progressBar');
+    bar.innerHTML = '';
+    for (let i = 0; i < 5; i++) {
+      const pill = document.createElement('div');
+      pill.className = 'r-pill';
+      const res = state.results[i];
+      if (res) {
+        pill.classList.add('done-' + scoreTier(res.score));
+        pill.innerHTML = `<span class="r-num">${res.shortName}</span><span class="r-val">${res.score}</span>`;
+      } else {
+        if (state.phase !== 'summary' && i === state.roundIdx) {
+          pill.classList.add('active');
+        }
+        const label = state.rounds[i] ? state.rounds[i].shortName : `R${i + 1}`;
+        pill.innerHTML = `<span class="r-num">${label}</span><span class="r-val">${i + 1}</span>`;
+      }
+      bar.appendChild(pill);
+    }
+  }
+
+  function updateHeaderBadges() {
+    $('#tabDaily').setAttribute('aria-pressed', String(state.mode === 'daily'));
+    $('#tabPractice').setAttribute('aria-pressed', String(state.mode === 'practice'));
+    $('#puzzleBadge').innerHTML = state.mode === 'daily'
+      ? `Daily <b>#${puzzleNum}</b>`
+      : `Mode <b>Practice</b>`;
+    updateBestBadge();
+  }
+
+  function loadRoundUI() {
+    const r = state.rounds[state.roundIdx];
+    $('#gameView').hidden = false;
+    $('#summaryView').hidden = true;
+
+    $('#roundTitle').textContent = r.title;
+    $('#roundTag').textContent = `Round ${state.roundIdx + 1} of 5`;
+    $('#roundDesc').innerHTML = r.desc;
+    $('#roundTip').textContent = r.tip;
+
+    $('#btnNext').hidden = true;
+    $('#mScore').textContent = '—';
+    $('#mScore').className = '';
+    $('#mError').textContent = '—';
+
+    const runningTotal = state.results.reduce((s, item) => s + item.score, 0);
+    $('#mTotal').textContent = `${runningTotal} / 500`;
+
+    canvas.classList.remove('locked', 'stop-mode');
+    if (r.id === 'stop') {
+      canvas.classList.add('stop-mode');
+      $('#statusHint').innerHTML = 'Tap canvas or press <kbd>Space</kbd> to stop the dot.';
+    } else if (r.id === 'area') {
+      $('#statusHint').textContent = 'Drag outward on the right to size the circle, then release.';
+    } else if (r.id === 'angle') {
+      $('#statusHint').textContent = 'Move or drag to sweep the pink ray, then release to lock in.';
+    } else if (r.id === 'bisect') {
+      $('#statusHint').textContent = 'Slide along the line to aim your cut, then release.';
+    } else {
+      $('#statusHint').textContent = 'Click or drag to fine-tune your mark, then release.';
+    }
+
+    // Reset live aim state
+    state.phase = 'aim';
+    state.revealT = 0;
+    state.pointer.active = false;
+    state.pointer.dragged = false;
+    state.aim.point = null;
+    state.aim.angleDeg = null;
+    state.aim.radius = null;
+    state.aim.dotClock = 0;
+    if (r.id === 'stop') {
+      state.aim.dotU = r.startPhase;
+    }
+
+    renderProgressBar();
+    resizeCanvas();
+  }
+
+  function showRevealUI(result) {
+    const runningTotal = state.results.reduce((s, item) => s + item.score, 0);
+    const tier = scoreTier(result.score);
+
+    canvas.classList.add('locked');
+    canvas.classList.remove('stop-mode');
+
+    $('#mScore').textContent = `${result.score} / 100`;
+    $('#mScore').className = 'score-' + tier;
+    $('#mError').textContent = result.shortErr;
+    $('#mTotal').textContent = `${runningTotal} / 500`;
+
+    $('#roundTip').textContent = wittyFeedback(result.score);
+
+    const isLast = state.roundIdx === 4;
+    const btnNext = $('#btnNext');
+    btnNext.textContent = isLast ? 'See Results →' : 'Next Round →';
+    btnNext.hidden = false;
+    $('#statusHint').innerHTML = `Press <kbd>Space</kbd> or <kbd>Enter</kbd> to continue.`;
+
+    renderProgressBar();
+  }
+
+  function showSummaryView(results, isDaily, savedAlready = false) {
+    state.phase = 'summary';
+    state.results = results;
+
+    $('#gameView').hidden = true;
+    $('#summaryView').hidden = false;
+
+    const total = results.reduce((s, r) => s + r.score, 0);
+    const rank = getRank(total);
+    let isNewBest = false;
+
+    if (!savedAlready) {
+      isNewBest = saveBestScore(total);
+      if (isDaily) saveDailyRecord(results);
+      sfx.fanfare();
+    } else {
+      updateBestBadge();
+    }
+
+    $('#sumKicker').textContent = isDaily
+      ? `Daily Challenge #${puzzleNum} · ${todayKey}`
+      : 'Endless Practice Run';
+    $('#sumRank').textContent = rank.title;
+    $('#sumBestNote').textContent = isNewBest
+      ? 'New personal best!'
+      : (isDaily && savedAlready ? 'Completed today' : rank.note);
+
+    // Build 5-row breakdown
+    const list = $('#sumList');
+    list.innerHTML = '';
+    results.forEach((r, idx) => {
+      const li = document.createElement('li');
+      li.innerHTML = `
+        <span class="sq ${scoreSquareClass(r.score)}" aria-hidden="true"></span>
+        <div class="bd-info">
+          <div class="bd-name">${idx + 1}. ${r.title}</div>
+          <div class="bd-err">${r.errText}</div>
+        </div>
+        <div class="bd-pts">${r.score}<span>/100</span></div>
+      `;
+      list.appendChild(li);
+    });
+
+    $('#btnBackDaily').hidden = isDaily;
+    $('#btnCopy').textContent = 'Copy Score';
+    $('#sumNote').textContent = isDaily
+      ? 'Everyone gets the exact same five puzzles today. Come back tomorrow for a fresh Daily, or sharpen your eye in Practice.'
+      : 'Each Practice run generates a brand-new set of shapes, angles, and speeds.';
+
+    renderProgressBar();
+
+    // Animated count-up for final score
+    const scoreEl = $('#sumScoreNum');
+    const startTs = performance.now();
+    const dur = savedAlready ? 320 : 780;
+    cancelAnimationFrame(state.summaryAnimId);
+    (function countUp(now) {
+      const t = clamp((now - startTs) / dur, 0, 1);
+      const eased = 1 - Math.pow(1 - t, 3);
+      scoreEl.textContent = String(Math.round(total * eased));
+      if (t < 1) state.summaryAnimId = requestAnimationFrame(countUp);
+    })(startTs);
+  }
+
+  /* ==========================================================================
+     MODE STARTING & ROUND PROGRESSION
+     ========================================================================== */
+  function startDaily() {
+    state.mode = 'daily';
+    updateHeaderBadges();
+
+    const completed = loadDailyRecord();
+    const rng = mulberry32(hashString('eyeball-daily-' + todayKey));
+    state.rounds = generateRun(rng);
+
+    if (completed) {
+      showSummaryView(completed.results, true, true);
+      return;
+    }
+
+    state.results = [];
+    state.roundIdx = 0;
+    loadRoundUI();
+  }
+
+  function startPractice() {
+    state.mode = 'practice';
+    updateHeaderBadges();
+
+    const seed = (Date.now() ^ Math.floor(Math.random() * 0xFFFFFFFF)) >>> 0;
+    const rng = mulberry32(seed);
+    state.rounds = generateRun(rng);
+    state.results = [];
+    state.roundIdx = 0;
+    loadRoundUI();
+  }
+
+  function advanceRound() {
+    if (state.phase !== 'reveal') return;
+    if (state.roundIdx < 4) {
+      state.roundIdx++;
+      loadRoundUI();
+    } else {
+      showSummaryView(state.results, state.mode === 'daily', false);
+    }
+  }
+
+  $('#tabDaily').addEventListener('click', startDaily);
+  $('#tabPractice').addEventListener('click', startPractice);
+  $('#btnPracticeRun').addEventListener('click', startPractice);
+  $('#btnBackDaily').addEventListener('click', startDaily);
+  $('#btnNext').addEventListener('click', advanceRound);
+
+  /* ==========================================================================
+     CLIPBOARD SHARE (Iframe-safe document.execCommand('copy'))
+     ========================================================================== */
+  function buildShareText() {
+    const total = state.results.reduce((s, r) => s + r.score, 0);
+    const rank = getRank(total).title;
+    const squares = state.results.map(r => scoreSquareEmoji(r.score)).join('');
+    const header = state.mode === 'daily'
+      ? `Eyeball #${puzzleNum} — ${total}/500`
+      : `Eyeball Practice — ${total}/500`;
+    const lines = state.results.map((r, i) => `${i + 1}. ${r.shortName}: ${r.score} (${r.shortErr})`);
+    return `${header}\n${rank}\n${squares}\n${lines.join('\n')}`;
+  }
+
+  $('#btnCopy').addEventListener('click', () => {
+    const text = buildShareText();
+    let copied = false;
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.setAttribute('readonly', '');
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      ta.style.left = '-9999px';
+      document.body.appendChild(ta);
+      ta.select();
+      ta.setSelectionRange(0, text.length);
+      copied = document.execCommand('copy');
+      document.body.removeChild(ta);
+    } catch {
+      copied = false;
+    }
+
+    const btn = $('#btnCopy');
+    btn.textContent = copied ? 'Copied!' : 'Copied Score!';
+    sfx.click();
+    setTimeout(() => { btn.textContent = 'Copy Score'; }, 2000);
+  });
+
+  /* ==========================================================================
+     SUBMITTING & EVALUATING EACH ROUND
+     ========================================================================== */
+  function lockInRound(guessPayload) {
+    if (state.phase !== 'aim') return;
+    const r = state.rounds[state.roundIdx];
+    let score = 0;
+    let errText = '';
+    let shortErr = '';
+
+    if (r.id === 'centroid') {
+      const d = hypot(guessPayload.x - r.centroid.x, guessPayload.y - r.centroid.y);
+      score = scoreFromPx(d);
+      errText = d < 0.5 ? 'Dead center (0.0 px)' : `Off by ${d.toFixed(1)} px`;
+      shortErr = `Off by ${d.toFixed(1)} px`;
+    } else if (r.id === 'bisect') {
+      const gx = r.A.x + (r.B.x - r.A.x) * guessPayload.t;
+      const gy = r.A.y + (r.B.y - r.A.y) * guessPayload.t;
+      const d = hypot(gx - r.mid.x, gy - r.mid.y);
+      const pctA = (guessPayload.t * 100).toFixed(1);
+      const pctB = ((1 - guessPayload.t) * 100).toFixed(1);
+      score = scoreFromPx(d);
+      errText = `${pctA}% / ${pctB}% · Off by ${d.toFixed(1)} px`;
+      shortErr = `${pctA}% / ${pctB}%`;
+      guessPayload.x = gx;
+      guessPayload.y = gy;
+    } else if (r.id === 'angle') {
+      const diff = Math.abs(guessPayload.angleDeg - r.targetDeg);
+      score = scoreFromDeg(diff);
+      errText = `You drew ${guessPayload.angleDeg.toFixed(1)}° vs ${r.targetDeg}° (off ${diff.toFixed(1)}°)`;
+      shortErr = `Off by ${diff.toFixed(1)}°`;
+    } else if (r.id === 'area') {
+      const userArea = Math.PI * guessPayload.radius * guessPayload.radius;
+      const ratio = userArea / r.area;
+      const relErr = Math.abs(ratio - 1);
+      const pct = (ratio * 100).toFixed(1);
+      score = scoreFromAreaRel(relErr);
+      errText = `${pct}% of target area`;
+      shortErr = `${pct}% area`;
+    } else if (r.id === 'stop') {
+      const gx = r.A.x + (r.B.x - r.A.x) * guessPayload.u;
+      const gy = r.A.y + (r.B.y - r.A.y) * guessPayload.u;
+      const d = hypot(gx - r.mid.x, gy - r.mid.y);
+      score = scoreFromPx(d);
+      errText = d < 0.5 ? 'Dead center (0.0 px)' : `Off by ${d.toFixed(1)} px`;
+      shortErr = `Off by ${d.toFixed(1)} px`;
+      guessPayload.x = gx;
+      guessPayload.y = gy;
+    }
+
+    const result = {
+      id: r.id,
+      shortName: r.shortName,
+      title: r.title,
+      score,
+      errText,
+      shortErr,
+      guess: guessPayload
+    };
+
+    state.results[state.roundIdx] = result;
+    state.phase = 'reveal';
+    state.revealT = 0;
+    state.pointer.active = false;
+
+    sfx.click();
+    sfx.score(score);
+    showRevealUI(result);
+  }
+
+  /* ==========================================================================
+     POINTER & KEYBOARD INTERACTION HANDLERS
+     ========================================================================== */
+  function projectToSegmentT(vx, vy, A, B) {
+    const abx = B.x - A.x, aby = B.y - A.y;
+    const len2 = abx * abx + aby * aby;
+    if (len2 < 1e-6) return 0.5;
+    const t = ((vx - A.x) * abx + (vy - A.y) * aby) / len2;
+    return clamp(t, 0.02, 0.98);
+  }
+
+  function computeUserAngleDeg(vx, vy, r) {
+    // Canvas y points down; measure counter-clockwise upward from base ray
+    const baseRad = -r.baseDeg * RAD;
+    const ptrRad = Math.atan2(vy - r.vertex.y, vx - r.vertex.x);
+    // Angle CCW from base ray (in standard math coords, CCW = negative screen angle delta)
+    let ccw = (baseRad - ptrRad) * DEG;
+    ccw = ((ccw % 360) + 360) % 360;
+    // Clamp gracefully to [2°, 178°] when pointer dips below base line
+    if (ccw > 180) {
+      ccw = ccw > 270 ? 2 : 178;
+    }
+    return clamp(ccw, 2, 178);
+  }
+
+  function updateLiveAim(e) {
+    const r = state.rounds[state.roundIdx];
+    if (!r || state.phase !== 'aim') return;
+
+    const useTouchOffset = (r.id === 'centroid' || r.id === 'bisect');
+    const pt = pointerToVirtual(e, useTouchOffset);
+    state.pointer.vx = pt.vx;
+    state.pointer.vy = pt.vy;
+    state.pointer.rawVx = pt.rawVx;
+    state.pointer.rawVy = pt.rawVy;
+    state.pointer.isTouch = (e.pointerType === 'touch');
+
+    if (r.id === 'centroid') {
+      state.aim.point = { x: pt.vx, y: pt.vy };
+    } else if (r.id === 'bisect') {
+      const t = projectToSegmentT(pt.vx, pt.vy, r.A, r.B);
+      state.aim.point = {
+        t,
+        x: r.A.x + (r.B.x - r.A.x) * t,
+        y: r.A.y + (r.B.y - r.A.y) * t
+      };
+    } else if (r.id === 'angle') {
+      const dist = hypot(pt.vx - r.vertex.x, pt.vy - r.vertex.y);
+      if (dist > 6) {
+        state.aim.angleDeg = computeUserAngleDeg(pt.vx, pt.vy, r);
+      }
+    } else if (r.id === 'area') {
+      if (state.pointer.active) {
+        const dist = hypot(pt.rawVx - r.circleCenter.x, pt.rawVy - r.circleCenter.y);
+        state.aim.radius = clamp(dist, 8, r.maxR);
+      }
+    }
+  }
+
+  canvas.addEventListener('pointerdown', e => {
+    sfx.unlock();
+    if (state.phase !== 'aim') return;
+    const r = state.rounds[state.roundIdx];
+    if (!r) return;
+
+    // Round 5 stops immediately on pointerdown for zero-lag precision
+    if (r.id === 'stop') {
+      e.preventDefault();
+      lockInRound({ u: state.aim.dotU });
+      return;
+    }
+
+    canvas.setPointerCapture(e.pointerId);
+    state.pointer.active = true;
+    state.pointer.inside = true;
+    state.pointer.dragged = false;
+    const p = pointerToVirtual(e, false);
+    state.pointer.downVx = p.rawVx;
+    state.pointer.downVy = p.rawVy;
+
+    updateLiveAim(e);
+  });
+
+  canvas.addEventListener('pointermove', e => {
+    state.pointer.inside = true;
+    if (state.phase !== 'aim') return;
+    const r = state.rounds[state.roundIdx];
+    if (!r || r.id === 'stop') return;
+
+    if (state.pointer.active) {
+      const p = pointerToVirtual(e, false);
+      if (hypot(p.rawVx - state.pointer.downVx, p.rawVy - state.pointer.downVy) > 5) {
+        state.pointer.dragged = true;
+      }
+    }
+    updateLiveAim(e);
+  });
+
+  canvas.addEventListener('pointerup', e => {
+    if (!state.pointer.active || state.phase !== 'aim') return;
+    const r = state.rounds[state.roundIdx];
+    updateLiveAim(e);
+    state.pointer.active = false;
+
+    if (r.id === 'centroid' && state.aim.point) {
+      lockInRound({ x: state.aim.point.x, y: state.aim.point.y });
+    } else if (r.id === 'bisect' && state.aim.point) {
+      lockInRound({ t: state.aim.point.t });
+    } else if (r.id === 'angle' && state.aim.angleDeg !== null) {
+      lockInRound({ angleDeg: state.aim.angleDeg });
+    } else if (r.id === 'area') {
+      // Prevent accidental 0px center tap without dragging
+      if (state.aim.radius !== null && (state.aim.radius >= 14 || state.pointer.dragged)) {
+        lockInRound({ radius: state.aim.radius });
+      } else {
+        $('#statusHint').textContent = 'Drag outward from the dot to grow the circle, then release.';
+      }
+    }
+  });
+
+  canvas.addEventListener('pointercancel', () => {
+    state.pointer.active = false;
+  });
+
+  canvas.addEventListener('pointerleave', () => {
+    state.pointer.inside = false;
+  });
+
+  window.addEventListener('keydown', e => {
+    if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
+    if (e.code === 'Space') {
+      if (state.phase === 'aim') {
+        const r = state.rounds[state.roundIdx];
+        if (r && r.id === 'stop') {
+          e.preventDefault();
+          sfx.unlock();
+          lockInRound({ u: state.aim.dotU });
+        }
+      } else if (state.phase === 'reveal') {
+        e.preventDefault();
+        advanceRound();
+      }
+    } else if (e.code === 'Enter' && state.phase === 'reveal') {
+      e.preventDefault();
+      advanceRound();
+    }
+  });
+
+  /* ==========================================================================
+     CANVAS DRAWING PRIMITIVES
+     ========================================================================== */
+  function drawDot(x, y, r, fill, stroke = null, lw = 2) {
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, TAU);
+    if (fill) { ctx.fillStyle = fill; ctx.fill(); }
+    if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw; ctx.stroke(); }
+  }
+
+  function drawCrosshair(x, y, size, color, lw = 2) {
+    ctx.save();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = lw;
+    ctx.beginPath();
+    ctx.moveTo(x - size, y); ctx.lineTo(x + size, y);
+    ctx.moveTo(x, y - size); ctx.lineTo(x, y + size);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawDashedLine(x1, y1, x2, y2, color, lw = 1.8, dash = [5, 4]) {
+    ctx.save();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = lw;
+    ctx.setLineDash(dash);
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawPillLabel(text, x, y, bg, fg, border = null) {
+    ctx.save();
+    ctx.font = '700 12px "Bricolage Grotesque", system-ui, sans-serif';
+    const m = ctx.measureText(text);
+    const padX = 8, h = 22, w = m.width + padX * 2;
+    const bx = clamp(x - w / 2, 8, view.w - w - 8);
+    const by = clamp(y - h / 2, 8, view.h - h - 8);
+    ctx.fillStyle = bg;
+    ctx.beginPath();
+    ctx.roundRect(bx, by, w, h, 4);
+    ctx.fill();
+    if (border) {
+      ctx.strokeStyle = border;
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    }
+    ctx.fillStyle = fg;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, bx + w / 2, by + h / 2 + 0.5);
+    ctx.restore();
+  }
+
+  function drawTouchTether(targetCanvasPt) {
+    if (!state.pointer.active || !state.pointer.isTouch) return;
+    const rawC = toCanvas(state.pointer.rawVx, state.pointer.rawVy);
+    drawDashedLine(rawC.x, rawC.y, targetCanvasPt.x, targetCanvasPt.y, palette.a, 1.3, [3, 3]);
+    drawDot(rawC.x, rawC.y, 12, palette.aSoft, palette.a, 1.2);
+  }
+
+  /* ==========================================================================
+     PER-ROUND RENDERERS
+     ========================================================================== */
+  function renderRound1(r, rev, res) {
+    // Polygon shape
+    ctx.save();
+    ctx.beginPath();
+    r.pts.forEach((p, i) => {
+      const cp = toCanvas(p.x, p.y);
+      i === 0 ? ctx.moveTo(cp.x, cp.y) : ctx.lineTo(cp.x, cp.y);
+    });
+    ctx.closePath();
+    ctx.fillStyle = palette.bSoft;
+    ctx.fill();
+    ctx.strokeStyle = palette.ink;
+    ctx.lineWidth = 2.2;
+    ctx.lineJoin = 'round';
+    ctx.stroke();
+
+    // Subtle vertex pins
+    r.pts.forEach(p => {
+      const cp = toCanvas(p.x, p.y);
+      drawDot(cp.x, cp.y, 3, palette.ink);
+    });
+    ctx.restore();
+
+    if (state.phase === 'aim' && (state.pointer.inside || state.pointer.active) && state.aim.point) {
+      const gp = toCanvas(state.aim.point.x, state.aim.point.y);
+      drawTouchTether(gp);
+      drawCrosshair(gp.x, gp.y, 12, palette.a, 1.6);
+      drawDot(gp.x, gp.y, 4.5, palette.a);
+    }
+
+    if (state.phase === 'reveal' && res) {
+      const tc = toCanvas(r.centroid.x, r.centroid.y);
+      const gc = toCanvas(res.guess.x, res.guess.y);
+      // Animated error line
+      const ex = gc.x + (tc.x - gc.x) * rev;
+      const ey = gc.y + (tc.y - gc.y) * rev;
+      drawDashedLine(gc.x, gc.y, ex, ey, palette.ink, 1.8, [4, 4]);
+
+      // True centroid (teal)
+      drawDot(tc.x, tc.y, 11 * rev, palette.cSoft, palette.c, 1.8);
+      drawCrosshair(tc.x, tc.y, 9 * rev, palette.c, 2.2);
+      drawDot(tc.x, tc.y, 3.8 * rev, palette.c);
+
+      // User guess (pink)
+      drawDot(gc.x, gc.y, 6, palette.a, palette.panel, 2);
+
+      if (rev > 0.6) {
+        const lx = (tc.x + gc.x) * 0.5;
+        const ly = Math.min(tc.y, gc.y) - 24;
+        drawPillLabel(res.shortErr, lx, ly, palette.panel, palette.ink, palette.ink);
+      }
+    }
+  }
+
+  function renderRound2(r, rev, res) {
+    const aC = toCanvas(r.A.x, r.A.y);
+    const bC = toCanvas(r.B.x, r.B.y);
+    const nx = -Math.sin(r.angle);
+    const ny = Math.cos(r.angle);
+
+    // Main segment
+    ctx.save();
+    ctx.strokeStyle = palette.ink;
+    ctx.lineWidth = 3;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(aC.x, aC.y);
+    ctx.lineTo(bC.x, bC.y);
+    ctx.stroke();
+
+    // Perpendicular endpoint caps
+    const cap = 12;
+    [aC, bC].forEach(pt => {
+      ctx.beginPath();
+      ctx.moveTo(pt.x - nx * cap, pt.y - ny * cap);
+      ctx.lineTo(pt.x + nx * cap, pt.y + ny * cap);
+      ctx.stroke();
+    });
+    ctx.restore();
+
+    if (state.phase === 'aim' && (state.pointer.inside || state.pointer.active) && state.aim.point) {
+      const gp = toCanvas(state.aim.point.x, state.aim.point.y);
+      drawTouchTether(gp);
+      ctx.save();
+      ctx.strokeStyle = palette.a;
+      ctx.lineWidth = 2.6;
+      ctx.beginPath();
+      ctx.moveTo(gp.x - nx * 16, gp.y - ny * 16);
+      ctx.lineTo(gp.x + nx * 16, gp.y + ny * 16);
+      ctx.stroke();
+      ctx.restore();
+      drawDot(gp.x, gp.y, 5, palette.a);
+    }
+
+    if (state.phase === 'reveal' && res) {
+      const tc = toCanvas(r.mid.x, r.mid.y);
+      const gc = toCanvas(res.guess.x, res.guess.y);
+
+      // Error span highlight
+      ctx.save();
+      ctx.strokeStyle = palette.a;
+      ctx.lineWidth = 5;
+      ctx.globalAlpha = 0.35;
+      ctx.beginPath();
+      ctx.moveTo(gc.x, gc.y);
+      ctx.lineTo(gc.x + (tc.x - gc.x) * rev, gc.y + (tc.y - gc.y) * rev);
+      ctx.stroke();
+      ctx.restore();
+
+      // True midpoint tick (teal)
+      ctx.save();
+      ctx.strokeStyle = palette.c;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(tc.x - nx * 18 * rev, tc.y - ny * 18 * rev);
+      ctx.lineTo(tc.x + nx * 18 * rev, tc.y + ny * 18 * rev);
+      ctx.stroke();
+      ctx.restore();
+      drawDot(tc.x, tc.y, 4.5 * rev, palette.c);
+
+      // User cut tick (pink)
+      ctx.save();
+      ctx.strokeStyle = palette.a;
+      ctx.lineWidth = 2.8;
+      ctx.beginPath();
+      ctx.moveTo(gc.x - nx * 14, gc.y - ny * 14);
+      ctx.lineTo(gc.x + nx * 14, gc.y + ny * 14);
+      ctx.stroke();
+      ctx.restore();
+      drawDot(gc.x, gc.y, 5, palette.a, palette.panel, 1.5);
+
+      if (rev > 0.6) {
+        const pctA = (res.guess.t * 100).toFixed(1) + '%';
+        const pctB = ((1 - res.guess.t) * 100).toFixed(1) + '%';
+        const m1x = (aC.x + gc.x) * 0.5 - nx * 24;
+        const m1y = (aC.y + gc.y) * 0.5 - ny * 24;
+        const m2x = (bC.x + gc.x) * 0.5 - nx * 24;
+        const m2y = (bC.y + gc.y) * 0.5 - ny * 24;
+        drawPillLabel(pctA, m1x, m1y, palette.panel, palette.mut, palette.line);
+        drawPillLabel(pctB, m2x, m2y, palette.panel, palette.mut, palette.line);
+        drawPillLabel(res.errText.split('·')[1].trim(), tc.x + nx * 30, tc.y + ny * 30, palette.panel, palette.ink, palette.ink);
+      }
+    }
+  }
+
+  function renderRound3(r, rev, res) {
+    const vc = toCanvas(r.vertex.x, r.vertex.y);
+    const rayPx = r.rayLen * view.scale;
+    const baseRad = -r.baseDeg * RAD;
+
+    const bx = vc.x + Math.cos(baseRad) * rayPx;
+    const by = vc.y + Math.sin(baseRad) * rayPx;
+
+    const activeDeg = state.phase === 'reveal' && res
+      ? res.guess.angleDeg
+      : (state.aim.angleDeg !== null ? state.aim.angleDeg : null);
+
+    // Draw live or locked pink wedge & ray
+    if (activeDeg !== null) {
+      const userRad = baseRad - activeDeg * RAD;
+      const ux = vc.x + Math.cos(userRad) * rayPx;
+      const uy = vc.y + Math.sin(userRad) * rayPx;
+
+      // Shaded wedge (NO degree readout while aiming!)
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(vc.x, vc.y);
+      ctx.arc(vc.x, vc.y, rayPx * 0.38, baseRad, userRad, true);
+      ctx.closePath();
+      ctx.fillStyle = palette.aSoft;
+      ctx.fill();
+      ctx.strokeStyle = palette.a;
+      ctx.lineWidth = 1.6;
+      ctx.beginPath();
+      ctx.arc(vc.x, vc.y, rayPx * 0.38, baseRad, userRad, true);
+      ctx.stroke();
+
+      // User pink ray
+      ctx.strokeStyle = palette.a;
+      ctx.lineWidth = 3;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(vc.x, vc.y);
+      ctx.lineTo(ux, uy);
+      ctx.stroke();
+      ctx.restore();
+      drawDot(ux, uy, 4.5, palette.a);
+    }
+
+    // Reveal true target ray in dashed teal
+    if (state.phase === 'reveal' && res) {
+      const targetRad = baseRad - r.targetDeg * RAD;
+      const tx = vc.x + Math.cos(targetRad) * rayPx * rev;
+      const ty = vc.y + Math.sin(targetRad) * rayPx * rev;
+
+      ctx.save();
+      ctx.strokeStyle = palette.c;
+      ctx.lineWidth = 2;
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath();
+      ctx.arc(vc.x, vc.y, rayPx * 0.54, baseRad, targetRad, true);
+      ctx.stroke();
+      ctx.restore();
+
+      drawDashedLine(vc.x, vc.y, tx, ty, palette.c, 2.8, [7, 5]);
+      if (rev > 0.7) {
+        const userRad = baseRad - res.guess.angleDeg * RAD;
+        const uLabelR = rayPx * 0.78;
+        const tLabelR = rayPx * 0.92;
+        // Separate label radii slightly if angles are very close
+        const close = Math.abs(res.guess.angleDeg - r.targetDeg) < 12;
+        const ulx = vc.x + Math.cos(userRad) * (close ? rayPx * 0.62 : uLabelR);
+        const uly = vc.y + Math.sin(userRad) * (close ? rayPx * 0.62 : uLabelR);
+        const tlx = vc.x + Math.cos(targetRad) * (close ? rayPx * 0.96 : tLabelR);
+        const tly = vc.y + Math.sin(targetRad) * (close ? rayPx * 0.96 : tLabelR);
+
+        drawPillLabel(`You: ${res.guess.angleDeg.toFixed(1)}°`, ulx, uly, palette.panel, palette.a, palette.a);
+        drawPillLabel(`Target: ${r.targetDeg}°`, tlx, tly, palette.panel, palette.c, palette.c);
+      }
+    }
+
+    // Cobalt blue base ray
+    ctx.save();
+    ctx.strokeStyle = palette.b;
+    ctx.lineWidth = 3;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(vc.x, vc.y);
+    ctx.lineTo(bx, by);
+    ctx.stroke();
+    ctx.restore();
+
+    // Vertex pin
+    drawDot(vc.x, vc.y, 5.5, palette.ink, palette.panel, 2);
+
+    // Subtle target badge in top-right corner of canvas so user never forgets the number
+    drawPillLabel(`Target: ${r.targetDeg}°`, view.w - 64, 24, palette.panel, palette.ink, palette.ink);
+  }
+
+  function renderRound4(r, rev, res) {
+    // Left half: Cobalt blue reference rectangle / rotated square
+    const refC = toCanvas(r.refCenter.x, r.refCenter.y);
+    const rwPx = r.rw * view.scale;
+    const rhPx = r.rh * view.scale;
+
+    ctx.save();
+    ctx.translate(refC.x, refC.y);
+    ctx.rotate(r.rotDeg * RAD);
+    ctx.fillStyle = palette.bSoft;
+    ctx.strokeStyle = palette.ink;
+    ctx.lineWidth = 2.2;
+    ctx.beginPath();
+    ctx.rect(-rwPx / 2, -rhPx / 2, rwPx, rhPx);
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+
+    // Subtle divider line down the middle
+    drawDashedLine(view.w * 0.5, 22, view.w * 0.5, view.h - 22, palette.line, 1.5, [4, 5]);
+
+    // Right half: Circle center + live/locked pink circle
+    const cc = toCanvas(r.circleCenter.x, r.circleCenter.y);
+    const curR = state.phase === 'reveal' && res ? res.guess.radius : state.aim.radius;
+
+    if (curR !== null) {
+      const rPx = curR * view.scale;
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(cc.x, cc.y, rPx, 0, TAU);
+      ctx.fillStyle = palette.aSoft;
+      ctx.fill();
+      ctx.strokeStyle = palette.a;
+      ctx.lineWidth = 2.4;
+      ctx.stroke();
+      ctx.restore();
+    } else if (state.phase === 'aim') {
+      // Subtle pulsing invitation ring
+      const pulse = 20 + Math.sin(performance.now() * 0.004) * 3;
+      ctx.save();
+      ctx.strokeStyle = palette.a;
+      ctx.globalAlpha = 0.45;
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath();
+      ctx.arc(cc.x, cc.y, pulse, 0, TAU);
+      ctx.stroke();
+      ctx.restore();
+      drawPillLabel('Drag to size', cc.x, cc.y + 42, palette.panel, palette.mut, palette.line);
+    }
+
+    // Center marker
+    drawCrosshair(cc.x, cc.y, 6, palette.ink, 1.6);
+    drawDot(cc.x, cc.y, 3, palette.a);
+
+    // Reveal true equal-area teal dashed ring
+    if (state.phase === 'reveal' && res) {
+      const trPx = r.targetR * view.scale * rev;
+      ctx.save();
+      ctx.strokeStyle = palette.c;
+      ctx.lineWidth = 3;
+      ctx.setLineDash([7, 5]);
+      ctx.beginPath();
+      ctx.arc(cc.x, cc.y, trPx, 0, TAU);
+      ctx.stroke();
+      ctx.restore();
+
+      if (rev > 0.65) {
+        const labelY = Math.min(view.h - 22, cc.y + Math.max(r.targetR, res.guess.radius) * view.scale + 22);
+        drawPillLabel(res.errText, cc.x, labelY, palette.panel, palette.ink, palette.ink);
+        drawPillLabel('True equal area', cc.x, Math.max(22, cc.y - r.targetR * view.scale - 18), palette.panel, palette.c, palette.c);
+      }
+    }
+  }
+
+  function renderRound5(r, rev, res) {
+    const aC = toCanvas(r.A.x, r.A.y);
+    const bC = toCanvas(r.B.x, r.B.y);
+    const nx = -Math.sin(r.angle);
+    const ny = Math.cos(r.angle);
+
+    // Track line
+    ctx.save();
+    ctx.strokeStyle = palette.ink;
+    ctx.lineWidth = 2.6;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(aC.x, aC.y);
+    ctx.lineTo(bC.x, bC.y);
+    ctx.stroke();
+
+    // Endpoint ticks ONLY (no center mark!)
+    const cap = 15;
+    [aC, bC].forEach((pt, idx) => {
+      ctx.beginPath();
+      ctx.moveTo(pt.x - nx * cap, pt.y - ny * cap);
+      ctx.lineTo(pt.x + nx * cap, pt.y + ny * cap);
+      ctx.stroke();
+      ctx.fillStyle = palette.mut;
+      ctx.font = '700 12px "Bricolage Grotesque", system-ui, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(idx === 0 ? 'A' : 'B', pt.x + nx * 28, pt.y + ny * 28);
+    });
+    ctx.restore();
+
+    const u = state.phase === 'reveal' && res ? res.guess.u : state.aim.dotU;
+    const dx = aC.x + (bC.x - aC.x) * u;
+    const dy = aC.y + (bC.y - aC.y) * u;
+
+    if (state.phase === 'reveal' && res) {
+      const tc = toCanvas(r.mid.x, r.mid.y);
+      drawDashedLine(dx, dy, dx + (tc.x - dx) * rev, dy + (tc.y - dy) * rev, palette.ink, 2, [4, 4]);
+
+      // True center tick in teal
+      ctx.save();
+      ctx.strokeStyle = palette.c;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(tc.x - nx * 20 * rev, tc.y - ny * 20 * rev);
+      ctx.lineTo(tc.x + nx * 20 * rev, tc.y + ny * 20 * rev);
+      ctx.stroke();
+      ctx.restore();
+      drawDot(tc.x, tc.y, 4.5 * rev, palette.c);
+
+      if (rev > 0.65) {
+        drawPillLabel(res.shortErr, (tc.x + dx) * 0.5, Math.min(tc.y, dy) - 30, palette.panel, palette.ink, palette.ink);
+      }
+    }
+
+    // Gliding / frozen pink dot
+    drawDot(dx, dy, 14, palette.aSoft);
+    drawDot(dx, dy, 8.5, palette.a, palette.panel, 2);
+  }
+
+  /* ==========================================================================
+     MAIN 60FPS ANIMATION LOOP
+     ========================================================================== */
+  let lastFrame = performance.now();
+
+  function tick(now) {
+    const dt = Math.min(0.05, (now - lastFrame) / 1000);
+    lastFrame = now;
+
+    if (state.phase !== 'summary' && state.rounds.length === 5) {
+      const r = state.rounds[state.roundIdx];
+
+      // Update Round 5 constant-speed linear triangle-wave glide
+      if (state.phase === 'aim' && r.id === 'stop') {
+        state.aim.dotClock += dt;
+        const cycle = (r.startPhase + state.aim.dotClock * r.speed) % 2;
+        state.aim.dotU = cycle <= 1 ? cycle : 2 - cycle;
+      }
+
+      // Smooth reveal pop-in
+      if (state.phase === 'reveal' && state.revealT < 1) {
+        state.revealT = Math.min(1, state.revealT + dt * 3.6);
+      }
+      const rev = 1 - Math.pow(1 - state.revealT, 3);
+      const res = state.results[state.roundIdx];
+
+      // Clear & draw current round
+      ctx.clearRect(0, 0, view.w, view.h);
+      if (r.id === 'centroid') renderRound1(r, rev, res);
+      else if (r.id === 'bisect') renderRound2(r, rev, res);
+      else if (r.id === 'angle') renderRound3(r, rev, res);
+      else if (r.id === 'area') renderRound4(r, rev, res);
+      else if (r.id === 'stop') renderRound5(r, rev, res);
+    }
+
+    requestAnimationFrame(tick);
+  }
+
+  /* ==========================================================================
+     BOOT
+     ========================================================================== */
+  window.addEventListener('load', () => {
+    initTheme();
+    $('#footerDate').textContent = `Daily #${puzzleNum} · ${todayKey}`;
+    resizeCanvas();
+    startDaily();
+    lastFrame = performance.now();
+    requestAnimationFrame(tick);
+  });
+})();
+</script>
+</body>
+</html>
